@@ -58,8 +58,8 @@ DATABASE_URL="postgresql://user:password@localhost:5432/sprachtrainer?schema=pub
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="dein-sehr-langer-geheimer-schlüssel"
 
-# OpenAI API (von: https://platform.openai.com/api-keys)
-OPENAI_API_KEY="sk-proj-..."
+# Google Gemini API (von: https://makersuite.google.com/app/apikey)
+GEMINI_API_KEY="dein-gemini-api-key"
 ```
 
 ### NEXTAUTH_SECRET generieren
@@ -72,12 +72,12 @@ openssl rand -base64 32
 [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
 ```
 
-### OpenAI API Key erhalten
+### Gemini API Key erhalten
 
-1. Gehe zu [platform.openai.com](https://platform.openai.com)
-2. Klicke auf "API Keys" im Menü
-3. "Create new secret key"
-4. Kopiere den Key (wird nur einmal angezeigt!)
+1. Gehe zu [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Klicke auf "Get API Key" oder "Create API Key"
+3. Wähle ein Google Cloud Projekt aus (oder erstelle ein neues)
+4. Kopiere den generierten API Key
 
 ## 4. Datenbank migrieren und seeden
 
@@ -149,17 +149,18 @@ sudo systemctl status postgresql
 # postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public
 ```
 
-### Problem: OpenAI API Fehler
+### Problem: Gemini API Fehler
 
 Häufige Ursachen:
 - API Key falsch kopiert (Leerzeichen?)
-- Kein Guthaben auf OpenAI Account
-- Rate Limit erreicht
+- API Key nicht aktiviert
+- Rate Limit erreicht (60 requests/min bei Free Tier)
 
 Lösung:
-1. Gehe zu [platform.openai.com/account/billing](https://platform.openai.com/account/billing)
-2. Überprüfe Balance
-3. Füge Zahlungsmethode hinzu falls nötig
+1. Gehe zu [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Überprüfe ob der API Key aktiv ist
+3. Erstelle ggf. einen neuen API Key
+4. Bei Rate Limits: Warte kurz oder upgrade auf höheres Tier
 
 ### Problem: NextAuth "no secret" Fehler
 
@@ -236,15 +237,18 @@ docker run -p 3000:3000 sprachtrainer
 
 ## Kosten-Übersicht
 
-### OpenAI API
-- GPT-4 Turbo: ~$0.01-0.03 pro Übung
-- Monatliche Kosten bei 100 Übungen: ~$1-3
-- Tipp: Setze Usage Limits im OpenAI Dashboard
+### Google Gemini API
+- **Free Tier**: 60 requests/minute - völlig kostenlos!
+- Gemini Pro: Aktuell kostenlos in Public Preview
+- Perfekt für Development und kleine bis mittlere Apps
+- Keine Kreditkarte erforderlich
 
 ### Hosting
 - Vercel: Free Tier (Hobby) ausreichend
 - Railway: $5/Monat für PostgreSQL
 - Supabase: Free Tier (500MB DB) oder $25/Monat
+
+**Gesamt-Kosten für Hobby-Projekt**: $0 - $5/Monat
 
 ## Support
 

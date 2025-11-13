@@ -1,9 +1,7 @@
-import OpenAI from 'openai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { ExerciseType, Language } from './utils'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 
 export interface GenerateExerciseParams {
   language: Language
@@ -28,24 +26,28 @@ export async function generateExercise(
   const prompt = buildExercisePrompt(language, topic, difficulty, type, context)
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
-      messages: [
-        {
-          role: 'system',
-          content: 'Du bist ein erfahrener Sprachlehrer, der hochwertige Übungen erstellt.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-      response_format: { type: 'json_object' },
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-pro',
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+      },
     })
 
-    const result = JSON.parse(completion.choices[0].message.content || '{}')
-    return result as GeneratedExercise
+    const result = await model.generateContent([
+      'Du bist ein erfahrener Sprachlehrer, der hochwertige Übungen erstellt.',
+      prompt,
+    ].join('\n\n'))
+
+    const response = await result.response
+    const text = response.text()
+
+    // Extrahiere JSON aus der Antwort (falls in Markdown-Codeblock eingebettet)
+    const jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/) || text.match(/\{[\s\S]*\}/)
+    const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : text
+
+    const parsed = JSON.parse(jsonText.trim())
+    return parsed as GeneratedExercise
   } catch (error) {
     console.error('Error generating exercise:', error)
     throw new Error('Failed to generate exercise')
@@ -71,19 +73,21 @@ Erstelle eine ${typeInstructions[type]} für das Thema "${topic}" in ${language}
 Schwierigkeitsgrad: ${difficulty}/5
 ${context ? `Kontext: ${context}` : ''}
 
-Antworte im folgenden JSON-Format:
+Antworte AUSSCHLIESSLICH im folgenden JSON-Format (ohne zusätzlichen Text):
 {
   "question": "Die Aufgabenstellung",
-  "options": ["Option 1", "Option 2", "Option 3", "Option 4"], // nur für multiple_choice
+  "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
   "correctAnswer": "Die korrekte Antwort",
   "explanation": "Eine detaillierte Erklärung der Lösung mit Regeln und Tipps"
 }
 
-Stelle sicher, dass:
-1. Die Frage klar und eindeutig ist
-2. Die Erklärung Regeln, Beispiele und hilfreiche Tipps enthält
-3. Die Schwierigkeit dem angegebenen Level entspricht
-4. Bei Multiple Choice nur eine Antwort korrekt ist
+Hinweise:
+- Bei multiple_choice: Gib 4 Optionen im "options" Array an
+- Bei anderen Typen: Lass "options" als leeres Array []
+- Die Frage muss klar und eindeutig sein
+- Die Erklärung muss Regeln, Beispiele und hilfreiche Tipps enthalten
+- Die Schwierigkeit muss dem angegebenen Level entsprechen
+- Bei Multiple Choice ist nur eine Antwort korrekt
 `
 }
 
@@ -106,7 +110,7 @@ export async function generateRule(params: GenerateRuleParams): Promise<Generate
   const prompt = `
 Erstelle eine umfassende Regel-Erklärung für das Thema "${topic}" in ${language}.
 
-Antworte im folgenden JSON-Format:
+Antworte AUSSCHLIESSLICH im folgenden JSON-Format (ohne zusätzlichen Text):
 {
   "title": "Titel der Regel",
   "content": "Detaillierte Erklärung der Regel",
@@ -123,24 +127,28 @@ Stelle sicher, dass:
 `
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
-      messages: [
-        {
-          role: 'system',
-          content: 'Du bist ein erfahrener Sprachlehrer mit didaktischem Geschick.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-      response_format: { type: 'json_object' },
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-pro',
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+      },
     })
 
-    const result = JSON.parse(completion.choices[0].message.content || '{}')
-    return result as GeneratedRule
+    const result = await model.generateContent([
+      'Du bist ein erfahrener Sprachlehrer mit didaktischem Geschick.',
+      prompt,
+    ].join('\n\n'))
+
+    const response = await result.response
+    const text = response.text()
+
+    // Extrahiere JSON aus der Antwort
+    const jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/) || text.match(/\{[\s\S]*\}/)
+    const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : text
+
+    const parsed = JSON.parse(jsonText.trim())
+    return parsed as GeneratedRule
   } catch (error) {
     console.error('Error generating rule:', error)
     throw new Error('Failed to generate rule')
@@ -159,28 +167,33 @@ Analysiere die folgenden Antworten eines Sprachlernenden und identifiziere Schw�
 ${JSON.stringify(userAnswers, null, 2)}
 
 Gib eine Liste von Themen zurück, die der Lernende üben sollte, sortiert nach Priorität.
-Antworte im JSON-Format: { "weaknesses": ["Thema 1", "Thema 2", ...] }
+Antworte AUSSCHLIESSLICH im JSON-Format (ohne zusätzlichen Text):
+{ "weaknesses": ["Thema 1", "Thema 2", ...] }
 `
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
-      messages: [
-        {
-          role: 'system',
-          content: 'Du bist ein Sprachlehrer, der Lernschwächen analysiert.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      temperature: 0.5,
-      response_format: { type: 'json_object' },
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-pro',
+      generationConfig: {
+        temperature: 0.5,
+        maxOutputTokens: 1024,
+      },
     })
 
-    const result = JSON.parse(completion.choices[0].message.content || '{}')
-    return result.weaknesses || []
+    const result = await model.generateContent([
+      'Du bist ein Sprachlehrer, der Lernschwächen analysiert.',
+      prompt,
+    ].join('\n\n'))
+
+    const response = await result.response
+    const text = response.text()
+
+    // Extrahiere JSON aus der Antwort
+    const jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/) || text.match(/\{[\s\S]*\}/)
+    const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : text
+
+    const parsed = JSON.parse(jsonText.trim())
+    return parsed.weaknesses || []
   } catch (error) {
     console.error('Error analyzing weaknesses:', error)
     return []
@@ -203,7 +216,7 @@ Basierend auf den folgenden Schwächen und kürzlich bearbeiteten Themen, schlag
 Schwächen: ${JSON.stringify(weaknesses, null, 2)}
 Kürzlich bearbeitet: ${JSON.stringify(recentTopics, null, 2)}
 
-Antworte im JSON-Format:
+Antworte AUSSCHLIESSLICH im JSON-Format (ohne zusätzlichen Text):
 {
   "topic": "Empfohlenes Thema",
   "reason": "Begründung für diese Empfehlung"
@@ -211,24 +224,28 @@ Antworte im JSON-Format:
 `
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
-      messages: [
-        {
-          role: 'system',
-          content: 'Du bist ein Sprachlehrer, der personalisierte Lernpläne erstellt.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-      response_format: { type: 'json_object' },
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-pro',
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1024,
+      },
     })
 
-    const result = JSON.parse(completion.choices[0].message.content || '{}')
-    return result
+    const result = await model.generateContent([
+      'Du bist ein Sprachlehrer, der personalisierte Lernpläne erstellt.',
+      prompt,
+    ].join('\n\n'))
+
+    const response = await result.response
+    const text = response.text()
+
+    // Extrahiere JSON aus der Antwort
+    const jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/) || text.match(/\{[\s\S]*\}/)
+    const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : text
+
+    const parsed = JSON.parse(jsonText.trim())
+    return parsed
   } catch (error) {
     console.error('Error suggesting exercise:', error)
     return {

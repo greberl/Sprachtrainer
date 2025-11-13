@@ -5,7 +5,7 @@ Eine moderne, KI-gestützte Web-Anwendung zum gezielten Üben von Sprachkenntnis
 ## ✨ Features
 
 ### 🤖 KI-Generierung
-- **Intelligente Übungserstellung**: GPT-4 generiert maßgeschneiderte Übungen basierend auf Thema, Schwierigkeit und Übungstyp
+- **Intelligente Übungserstellung**: Google Gemini Pro generiert maßgeschneiderte Übungen basierend auf Thema, Schwierigkeit und Übungstyp
 - **Adaptive Vorschläge**: KI analysiert deine Leistung und schlägt die besten nächsten Übungen vor
 - **Kontextuelle Erklärungen**: Detaillierte Erläuterungen mit Regeln, Beispielen und Tipps
 
@@ -55,7 +55,7 @@ Unterstützt 6 Sprachen:
 - **PostgreSQL**: Relationale Datenbank
 
 ### KI & Services
-- **OpenAI GPT-4**: Übungsgenerierung und Analyse
+- **Google Gemini Pro**: Übungsgenerierung und Analyse
 - **Lucide React**: Icon-Bibliothek
 
 ## 📁 Projektstruktur
@@ -94,7 +94,7 @@ sprachtrainer/
 │   ├── lib/
 │   │   ├── prisma.ts          # Prisma Client
 │   │   ├── auth.ts            # Auth-Konfiguration
-│   │   ├── ai.ts              # OpenAI Integration
+│   │   ├── ai.ts              # Google Gemini Integration
 │   │   └── utils.ts           # Utility-Funktionen
 │   ├── types/
 │   │   └── next-auth.d.ts     # Type Definitions
@@ -113,7 +113,7 @@ sprachtrainer/
 ### Voraussetzungen
 - Node.js 18+ und npm
 - PostgreSQL Datenbank
-- OpenAI API Key
+- Google Gemini API Key
 
 ### Schritt 1: Repository klonen
 ```bash
@@ -137,13 +137,13 @@ DATABASE_URL="postgresql://user:password@localhost:5432/sprachtrainer?schema=pub
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="dein-geheimer-schlüssel-hier"
 
-# OpenAI API
-OPENAI_API_KEY="sk-dein-openai-api-key"
+# Google Gemini API
+GEMINI_API_KEY="dein-gemini-api-key"
 ```
 
 **Wichtig:**
 - Generiere einen sicheren NEXTAUTH_SECRET mit: `openssl rand -base64 32`
-- Erhalte deinen OpenAI API Key von: https://platform.openai.com/api-keys
+- Erhalte deinen Gemini API Key von: https://makersuite.google.com/app/apikey
 
 ### Schritt 4: Datenbank einrichten
 ```bash
@@ -296,7 +296,7 @@ const suggestion = await suggestNextExercise(weaknesses, recentTopics)
 2. **Login**: Authentifizierung mit Email/Passwort
 3. **Dashboard**: Übersicht über Schwächen und Empfehlungen
 4. **Übung erstellen**: Sprache, Thema, Typ und Schwierigkeit wählen
-5. **KI-Generierung**: GPT-4 erstellt personalisierte Übung
+5. **KI-Generierung**: Google Gemini erstellt personalisierte Übung
 6. **Übung lösen**: Benutzer beantwortet Frage
 7. **Feedback**: Sofortige Rückmeldung mit Erklärung
 8. **Fortschritt**: Automatische Aktualisierung von Stats und Schwächen
@@ -357,10 +357,10 @@ npx prisma generate
 npx prisma migrate reset
 ```
 
-### OpenAI API-Fehler
-- Überprüfe API-Key in `.env`
-- Stelle sicher, dass Guthaben vorhanden ist
-- Rate Limits beachten
+### Gemini API-Fehler
+- Überprüfe GEMINI_API_KEY in `.env`
+- Stelle sicher, dass der API Key gültig ist
+- Rate Limits beachten (Gemini Pro: 60 requests/min)
 
 ### NextAuth-Fehler
 - `NEXTAUTH_SECRET` muss gesetzt sein
@@ -382,7 +382,7 @@ MIT License - siehe LICENSE Datei
 ## 🙏 Danksagungen
 
 - Next.js Team für das großartige Framework
-- OpenAI für die GPT-4 API
+- Google für die Gemini API
 - Prisma Team für das elegante ORM
 - Vercel für Hosting und Deployment
 
