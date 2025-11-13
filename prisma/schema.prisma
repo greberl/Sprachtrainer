@@ -1,0 +1,130 @@
+// Prisma Schema für Sprachtrainer App
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String
+  nativeLanguage String   @default("de") // de, en, ru, es, fr, it
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  exercises     Exercise[]
+  progress      UserProgress[]
+  weaknesses    Weakness[]
+
+  @@map("users")
+}
+
+model Topic {
+  id          String   @id @default(cuid())
+  name        String   // z.B. "Present Perfect", "Akkusativ", "Subjunctive"
+  language    String   // de, en, ru, es, fr, it
+  category    String   // grammar, vocabulary, pronunciation, writing
+  description String?
+  difficulty  Int      @default(1) // 1-5
+  createdAt   DateTime @default(now())
+
+  exercises   Exercise[]
+  weaknesses  Weakness[]
+  rules       Rule[]
+
+  @@map("topics")
+  @@index([language, category])
+}
+
+model Rule {
+  id          String   @id @default(cuid())
+  topicId     String
+  topic       Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  title       String
+  content     String   @db.Text
+  examples    String[] // JSON array of examples
+  mnemonics   String[] // Eselsbrücken
+  tips        String[] // Tipps zur Verbesserung
+  language    String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("rules")
+  @@index([topicId])
+}
+
+model Exercise {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  topicId     String
+  topic       Topic    @relation(fields: [topicId], references: [id])
+
+  language    String   // Zielsprache
+  type        String   // multiple_choice, fill_blank, translation, sentence_construction
+  difficulty  Int      @default(1) // 1-5
+
+  question    String   @db.Text
+  options     String[] // Für Multiple Choice
+  correctAnswer String @db.Text
+  explanation String   @db.Text
+
+  generatedByAI Boolean @default(true)
+  createdAt   DateTime @default(now())
+
+  progress    UserProgress[]
+
+  @@map("exercises")
+  @@index([topicId, language, difficulty])
+}
+
+model UserProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  exerciseId  String
+  exercise    Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  userAnswer  String   @db.Text
+  isCorrect   Boolean
+  attempts    Int      @default(1)
+  timeSpent   Int?     // in seconds
+
+  completedAt DateTime @default(now())
+
+  @@map("user_progress")
+  @@index([userId, completedAt])
+  @@index([exerciseId])
+}
+
+model Weakness {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  topicId     String
+  topic       Topic    @relation(fields: [topicId], references: [id])
+
+  language    String
+  severity    Float    @default(0.5) // 0-1, basierend auf Fehlerrate
+  errorCount  Int      @default(0)
+  totalAttempts Int    @default(0)
+
+  lastPracticed DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("weaknesses")
+  @@unique([userId, topicId])
+  @@index([userId, severity])
+}
